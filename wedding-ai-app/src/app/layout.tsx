@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/app/_components/SessionProvider";
 import { Navigation } from "@/app/_components/Navigation";
 import { ErrorBoundary } from "@/app/_components/ErrorBoundary";
+import { AuthHydrator } from "@/app/_components/AuthHydrator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>
+          <AuthHydrator />
           <ErrorBoundary>
             <div className="min-h-screen bg-gray-50">
               <Navigation />
