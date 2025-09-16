@@ -2,12 +2,19 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { User } from "@/types";
+
+type AuthUser = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  credits: number;
+};
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   isLoading: boolean;
-  setUser: (user: User | null) => void;
+  setUser: (user: AuthUser | null) => void;
   setLoading: (loading: boolean) => void;
   updateCredits: (credits: number) => void;
 }
