@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { verifyWebhookSignature } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -43,9 +44,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handlePaymentSuccess(paymentIntent: any) {
+async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
   try {
-    const { userId, credits } = paymentIntent.metadata;
+    const { userId, credits } = paymentIntent.metadata as Stripe.Metadata & {
+      userId?: string;
+      credits?: string;
+    };
 
     if (!userId || !credits) {
       console.error("Missing metadata in payment intent:", paymentIntent.id);
@@ -57,7 +61,7 @@ async function handlePaymentSuccess(paymentIntent: any) {
       where: { id: userId },
       data: {
         credits: {
-          increment: parseInt(credits),
+          increment: parseInt(credits, 10),
         },
       },
     });
@@ -66,10 +70,9 @@ async function handlePaymentSuccess(paymentIntent: any) {
     await prisma.order.create({
       data: {
         userId,
-        amount: paymentIntent.amount / 100, // 센트를 달러로 변환
-        currency: paymentIntent.currency,
+        amount: paymentIntent.amount,
+        credits: parseInt(credits, 10),
         status: "COMPLETED",
-        paymentIntentId: paymentIntent.id,
       },
     });
 
@@ -81,9 +84,11 @@ async function handlePaymentSuccess(paymentIntent: any) {
   }
 }
 
-async function handlePaymentFailure(paymentIntent: any) {
+async function handlePaymentFailure(paymentIntent: Stripe.PaymentIntent) {
   try {
-    const { userId } = paymentIntent.metadata;
+    const { userId } = paymentIntent.metadata as Stripe.Metadata & {
+      userId?: string;
+    };
 
     if (!userId) {
       console.error("Missing userId in payment intent:", paymentIntent.id);
@@ -94,10 +99,9 @@ async function handlePaymentFailure(paymentIntent: any) {
     await prisma.order.create({
       data: {
         userId,
-        amount: paymentIntent.amount / 100,
-        currency: paymentIntent.currency,
+        amount: paymentIntent.amount,
+        credits: 0,
         status: "FAILED",
-        paymentIntentId: paymentIntent.id,
       },
     });
 

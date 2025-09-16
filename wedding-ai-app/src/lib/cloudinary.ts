@@ -1,4 +1,8 @@
-import { v2 as cloudinary } from "cloudinary";
+import {
+  v2 as cloudinary,
+  type TransformationOptions,
+  type UploadApiOptions,
+} from "cloudinary";
 
 // Cloudinary 설정
 cloudinary.config({
@@ -22,7 +26,7 @@ export async function uploadToCloudinary(
   folder: string = "wedding-ai",
   options: {
     publicId?: string;
-    transformation?: any;
+    transformation?: TransformationOptions;
   } = {}
 ): Promise<UploadResult> {
   try {
@@ -35,17 +39,19 @@ export async function uploadToCloudinary(
       "base64"
     )}`;
 
-    const uploadOptions = {
+    const defaultTransformation: TransformationOptions = {
+      quality: "auto",
+      fetch_format: "auto",
+      width: 1024,
+      height: 1024,
+      crop: "limit",
+    };
+
+    const uploadOptions: UploadApiOptions = {
       folder,
       public_id: options.publicId,
-      transformation: options.transformation || {
-        quality: "auto",
-        fetch_format: "auto",
-        width: 1024,
-        height: 1024,
-        crop: "limit",
-      },
-      resource_type: "image" as const,
+      transformation: options.transformation ?? defaultTransformation,
+      resource_type: "image",
     };
 
     const result = await cloudinary.uploader.upload(base64Image, uploadOptions);
@@ -101,9 +107,9 @@ export async function deleteFromCloudinary(
  */
 export function getCloudinaryUrl(
   publicId: string,
-  transformations: any = {}
+  transformations: TransformationOptions = {}
 ): string {
-  const defaultTransformations = {
+  const defaultTransformations: TransformationOptions = {
     quality: "auto",
     fetch_format: "auto",
     ...transformations,
