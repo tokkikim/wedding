@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "./ui/Button";
@@ -13,7 +14,22 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onUpload }: ImageUploadProps) {
   const [error, setError] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { currentImage, setCurrentImage } = useImageStore();
+
+  useEffect(() => {
+    if (!currentImage) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(currentImage);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [currentImage]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -47,15 +63,20 @@ export function ImageUpload({ onUpload }: ImageUploadProps) {
     setError("");
   };
 
-  if (currentImage) {
+  if (currentImage && previewUrl) {
     return (
       <div className="relative">
         <div className="relative overflow-hidden rounded-lg border-2 border-gray-200">
-          <img
-            src={URL.createObjectURL(currentImage)}
-            alt="업로드된 이미지"
-            className="h-64 w-full object-cover"
-          />
+          <div className="relative h-64 w-full">
+            <Image
+              src={previewUrl}
+              alt="업로드된 이미지"
+              fill
+              className="object-cover"
+              sizes="(min-width: 768px) 512px, 100vw"
+              unoptimized
+            />
+          </div>
           <Button
             variant="ghost"
             size="sm"
