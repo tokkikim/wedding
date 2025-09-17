@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "exercise:generate": "tsx scripts/exercise-generate.ts"
   },
   "dependencies": {
     "react": "19.1.0",
@@ -39,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "@eslint/eslintrc": "^3",
-    "prisma": "^6.0.0"
+    "prisma": "^6.0.0",
+    "tsx": "^4.19.1"
   }
 }

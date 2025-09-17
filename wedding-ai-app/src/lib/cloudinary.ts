@@ -27,6 +27,7 @@ export async function uploadToCloudinary(
   options: {
     publicId?: string;
     transformation?: TransformationOptions;
+    mimeType?: "image/jpeg" | "image/png" | "image/webp";
   } = {}
 ): Promise<UploadResult> {
   try {
@@ -35,7 +36,8 @@ export async function uploadToCloudinary(
     }
 
     // 이미지를 base64로 변환
-    const base64Image = `data:image/jpeg;base64,${imageBuffer.toString(
+    const mimeType = options.mimeType ?? "image/jpeg";
+    const base64Image = `data:${mimeType};base64,${imageBuffer.toString(
       "base64"
     )}`;
 
