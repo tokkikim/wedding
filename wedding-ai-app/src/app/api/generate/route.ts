@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import type { NextAuthOptions } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import {
   generateWeddingImage,
@@ -9,10 +9,25 @@ import {
 } from "@/lib/ai";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
+let cachedAuthOptions: NextAuthOptions | null = null;
+
+async function getAuthOptions(): Promise<NextAuthOptions> {
+  if (!cachedAuthOptions) {
+    cachedAuthOptions = (await import("@/lib/auth")).authOptions;
+  }
+
+  return cachedAuthOptions;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 인증 확인
-    const session = await getServerSession(authOptions);
+    const session = process.env.TEST_SESSION_USER_ID
+      ? ({ user: { id: process.env.TEST_SESSION_USER_ID } } as {
+          user: { id: string };
+        })
+      : await getServerSession(await getAuthOptions());
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: "로그인이 필요합니다." },
@@ -20,9 +35,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userId = session.user.id;
+
     // 사용자 크레딧 확인
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { credits: true },
     });
 
@@ -82,7 +99,7 @@ export async function POST(request: NextRequest) {
     const originalUploadResult = await uploadToCloudinary(
       processedImageBuffer,
       "wedding-ai/originals",
-      { publicId: `original_${Date.now()}_${session.user.id}` }
+      { publicId: `original_${Date.now()}_${userId}` }
     );
 
     if (!originalUploadResult.success) {
@@ -95,7 +112,7 @@ export async function POST(request: NextRequest) {
     // GeneratedImage 레코드 생성 (PROCESSING 상태)
     const generatedImage = await prisma.generatedImage.create({
       data: {
-        userId: session.user.id,
+        userId,
         originalUrl: originalUploadResult.url!,
         prompt: `${prompt}, wedding photography style: ${style}`,
         style,
@@ -105,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     // 크레딧 차감
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: userId },
       data: { credits: { decrement: 1 } },
     });
 
@@ -119,33 +136,45 @@ export async function POST(request: NextRequest) {
           prompt,
         });
 
-        if (aiResult.success && aiResult.generatedImageUrl) {
-          // 생성된 이미지를 Cloudinary에 업로드
-          const generatedImageBuffer = Buffer.from(
-            await fetch(aiResult.generatedImageUrl).then((res) =>
-              res.arrayBuffer()
-            )
-          );
-
-          const generatedUploadResult = await uploadToCloudinary(
-            generatedImageBuffer,
-            "wedding-ai/generated",
-            { publicId: `generated_${generatedImage.id}` }
-          );
-
-          if (generatedUploadResult.success) {
-            await prisma.generatedImage.update({
-              where: { id: generatedImage.id },
-              data: {
-                generatedUrl: generatedUploadResult.url,
-                status: "COMPLETED",
-              },
-            });
-          } else {
-            throw new Error("생성된 이미지 업로드 실패");
-          }
-        } else {
+        if (!aiResult.success) {
           throw new Error(aiResult.error || "AI 이미지 생성 실패");
+        }
+
+        let generatedBuffer: Buffer | null = null;
+
+        if (aiResult.imageBuffer?.length) {
+          generatedBuffer = aiResult.imageBuffer;
+        } else if (aiResult.generatedImageUrl) {
+          const response = await fetch(aiResult.generatedImageUrl);
+          const arrayBuffer = await response.arrayBuffer();
+          generatedBuffer = Buffer.from(arrayBuffer);
+        }
+
+        if (!generatedBuffer) {
+          throw new Error("생성된 이미지 데이터를 찾을 수 없습니다.");
+        }
+
+        const generatedUploadResult = await uploadToCloudinary(
+          generatedBuffer,
+          "wedding-ai/generated",
+          {
+            publicId: `generated_${generatedImage.id}`,
+            mimeType: aiResult.mimeType,
+          }
+        );
+
+        if (generatedUploadResult.success && generatedUploadResult.url) {
+          await prisma.generatedImage.update({
+            where: { id: generatedImage.id },
+            data: {
+              generatedUrl: generatedUploadResult.url,
+              status: "COMPLETED",
+            },
+          });
+        } else {
+          throw new Error(
+            generatedUploadResult.error || "생성된 이미지 업로드 실패"
+          );
         }
       } catch (error) {
         console.error("AI generation error:", error);

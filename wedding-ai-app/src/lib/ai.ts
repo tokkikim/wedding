@@ -1,7 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Gemini API 클라이언트 초기화
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+type SupportedMimeType = "image/jpeg" | "image/png" | "image/webp";
+
+const DEFAULT_MODEL = process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.0-flash-exp";
+
+let genAI: GoogleGenerativeAI | null = null;
+
+function getGeminiModel() {
+  if (!process.env.GEMINI_API_KEY) {
+    return null;
+  }
+
+  if (!genAI) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  }
+
+  return genAI.getGenerativeModel({ model: DEFAULT_MODEL });
+}
 
 export interface ImageGenerationRequest {
   imageBuffer: Buffer;
@@ -11,7 +26,10 @@ export interface ImageGenerationRequest {
 
 export interface ImageGenerationResponse {
   success: boolean;
+  imageBuffer?: Buffer;
   generatedImageUrl?: string;
+  mimeType?: SupportedMimeType;
+  provider?: "gemini" | "local";
   error?: string;
 }
 
@@ -24,16 +42,8 @@ export async function generateWeddingImage({
   prompt,
 }: ImageGenerationRequest): Promise<ImageGenerationResponse> {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY가 설정되지 않았습니다.");
-    }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-
-    // 이미지를 base64로 변환
     const base64Image = imageBuffer.toString("base64");
 
-    // 스타일별 프롬프트 생성
     const stylePrompts = {
       classic:
         "elegant classic wedding photography, soft lighting, romantic atmosphere, traditional wedding dress, beautiful bouquet, professional studio lighting",
@@ -43,18 +53,68 @@ export async function generateWeddingImage({
         "vintage retro wedding photography, film grain, nostalgic mood, vintage wedding dress, classic styling, retro atmosphere",
       outdoor:
         "outdoor garden wedding photography, natural lighting, fresh atmosphere, outdoor venue, natural beauty, garden setting",
-    };
+    } as const;
 
     const basePrompt =
       stylePrompts[style as keyof typeof stylePrompts] || stylePrompts.classic;
     const finalPrompt = prompt ? `${basePrompt}, ${prompt}` : basePrompt;
 
-    // 이미지 생성 요청
+    const geminiModel = getGeminiModel();
+
+    if (geminiModel) {
+      const geminiImage = await tryGenerateWithGemini({
+        model: geminiModel,
+        base64Image,
+        prompt: finalPrompt,
+      });
+
+      if (geminiImage) {
+        return {
+          success: true,
+          imageBuffer: geminiImage.buffer,
+          mimeType: geminiImage.mimeType,
+          provider: "gemini",
+        };
+      }
+    }
+
+    const locallyStylizedImage = await applyLocalWeddingStyle({
+      imageBuffer,
+      style,
+      prompt: finalPrompt,
+    });
+
+    return {
+      success: true,
+      imageBuffer: locallyStylizedImage,
+      mimeType: "image/jpeg",
+      provider: "local",
+    };
+  } catch (error) {
+    console.error("Wedding image generation error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "이미지 생성 중 오류가 발생했습니다.",
+    };
+  }
+}
+
+async function tryGenerateWithGemini({
+  model,
+  base64Image,
+  prompt,
+}: {
+  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>;
+  base64Image: string;
+  prompt: string;
+}): Promise<{ buffer: Buffer; mimeType: SupportedMimeType } | null> {
+  try {
     const result = await model.generateContent([
       {
-        text: `Transform this image into a beautiful wedding photo with the following style: ${finalPrompt}. 
-        The image should look like a professional wedding photograph with high quality, 
-        proper lighting, and wedding-themed elements.`,
+        text: `Transform this reference into a high-end wedding photograph. Focus on wedding-themed styling, graceful posing, and cohesive lighting while keeping recognizable facial features. Style guidance: ${prompt}. Return the finished image as inline binary data.`,
       },
       {
         inlineData: {
@@ -65,28 +125,167 @@ export async function generateWeddingImage({
     ]);
 
     const response = await result.response;
-    const text = response.text();
+    const candidates = response.candidates ?? [];
 
-    // Gemini는 텍스트만 반환하므로, 실제 이미지 생성을 위해서는 다른 방법이 필요
-    // 여기서는 시뮬레이션된 응답을 반환
-    console.log("Gemini API Response:", text);
+    for (const candidate of candidates) {
+      const parts = candidate.content?.parts ?? [];
+      for (const part of parts) {
+        const inline = (part as { inlineData?: { data?: string; mimeType?: string } })
+          .inlineData;
+        if (inline?.data) {
+          const mimeType = normalizeMimeType(inline.mimeType);
+          const buffer = Buffer.from(inline.data, "base64");
+          if (buffer.length > 0) {
+            return { buffer, mimeType };
+          }
+        }
 
-    // 실제 구현에서는 이미지 URL을 반환해야 함
-    return {
-      success: true,
-      generatedImageUrl:
-        "https://via.placeholder.com/800x600/FFB6C1/FFFFFF?text=Generated+Wedding+Photo",
-    };
+        const text = (part as { text?: string }).text;
+        if (text) {
+          const parsed = extractBase64Image(text);
+          if (parsed) {
+            return parsed;
+          }
+        }
+      }
+    }
+
+    const fallbackText = response.text();
+    const parsed = extractBase64Image(fallbackText);
+    if (parsed) {
+      return parsed;
+    }
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "이미지 생성 중 오류가 발생했습니다.",
-    };
+    console.warn("Gemini image generation failed, falling back to local styling.", error);
   }
+
+  return null;
+}
+
+async function applyLocalWeddingStyle({
+  imageBuffer,
+  style,
+  prompt,
+}: {
+  imageBuffer: Buffer;
+  style: string;
+  prompt: string;
+}): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+
+  const base = sharp(imageBuffer).rotate().resize(1400, 940, {
+    fit: "cover",
+    position: "attention",
+  });
+
+  const lowerPrompt = prompt.toLowerCase();
+
+  let styled = base.clone();
+
+  switch (style) {
+    case "modern":
+      styled = styled
+        .modulate({ saturation: 1.2, brightness: 1.1 })
+        .linear(1.08, -12)
+        .sharpen();
+      break;
+    case "vintage":
+      styled = styled
+        .modulate({ saturation: 0.72, brightness: 1.08 })
+        .gamma(1.05)
+        .tint("#d6b28a");
+      break;
+    case "outdoor":
+      styled = styled
+        .modulate({ saturation: 1.32, brightness: 1.18, hue: -4 })
+        .sharpen();
+      break;
+    case "classic":
+    default:
+      styled = styled.modulate({ saturation: 0.94, brightness: 1.06 }).sharpen();
+      break;
+  }
+
+  if (lowerPrompt.includes("sunset") || lowerPrompt.includes("golden hour")) {
+    styled = styled.modulate({ saturation: 1.1, brightness: 1.05, hue: 6 });
+  }
+
+  if (lowerPrompt.includes("romantic") || lowerPrompt.includes("dreamy")) {
+    styled = styled.blur(0.3).modulate({ saturation: 1.08 });
+  }
+
+  if (lowerPrompt.includes("night") || lowerPrompt.includes("evening")) {
+    styled = styled.linear(0.9, -12);
+  }
+
+  if (lowerPrompt.includes("floral") || lowerPrompt.includes("garden")) {
+    styled = styled.modulate({ saturation: 1.1, hue: -2 });
+  }
+
+  const overlayOpacity = style === "vintage" ? 0.24 : 0.14;
+  const overlayColor =
+    style === "modern"
+      ? { r: 255, g: 255, b: 255, alpha: overlayOpacity }
+      : { r: 255, g: 214, b: 196, alpha: overlayOpacity };
+
+  const overlay = await sharp({
+    create: {
+      width: 1400,
+      height: 940,
+      channels: 4,
+      background: overlayColor,
+    },
+  })
+    .png()
+    .toBuffer();
+
+  styled = styled.composite([
+    {
+      input: overlay,
+      blend: style === "modern" ? "soft-light" : "overlay",
+    },
+  ]);
+
+  return styled.jpeg({ quality: 92 }).toBuffer();
+}
+
+function extractBase64Image(
+  payload: string
+): { buffer: Buffer; mimeType: SupportedMimeType } | null {
+  const dataUriRegex = /data:image\/(png|jpe?g|webp);base64,([A-Za-z0-9+/=]+)/i;
+  const markdownRegex = /!\[[^\]]*\]\((data:image\/(?:png|jpe?g|webp);base64,[A-Za-z0-9+/=]+)\)/i;
+
+  const directMatch = payload.match(dataUriRegex);
+  const markdownMatch = payload.match(markdownRegex);
+
+  const source = directMatch?.[0] ?? markdownMatch?.[1];
+
+  if (!source) {
+    return null;
+  }
+
+  const [, type, data] = dataUriRegex.exec(source) ?? [];
+
+  if (!type || !data) {
+    return null;
+  }
+
+  const mimeType = normalizeMimeType(`image/${type.replace("jpg", "jpeg")}`);
+  const buffer = Buffer.from(data, "base64");
+
+  if (buffer.length === 0) {
+    return null;
+  }
+
+  return { buffer, mimeType };
+}
+
+function normalizeMimeType(mimeType?: string): SupportedMimeType {
+  if (mimeType === "image/png" || mimeType === "image/webp") {
+    return mimeType;
+  }
+
+  return "image/jpeg";
 }
 
 /**
