@@ -1,7 +1,14 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import KakaoProvider from "next-auth/providers/kakao";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
+
+type KakaoProfile = {
+  kakao_account?: {
+    email?: string;
+  };
+};
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -9,6 +16,15 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    KakaoProvider({
+      clientId: process.env.KAKAO_CLIENT_ID!,
+      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "profile_nickname account_email",
+        },
+      },
     }),
   ],
   callbacks: {
@@ -25,24 +41,19 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async signIn({ user, account, profile }) {
-      // 새 사용자에게 기본 크레딧 지급
-      if (user.email) {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
-
-        if (!existingUser) {
-          // 새 사용자에게 3 크레딧 지급
-          await prisma.user.create({
-            data: {
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              credits: 3,
-            },
-          });
-        }
+      if (!account) {
+        return false;
       }
+
+      if (!user.email && account.provider === "kakao") {
+        const kakaoProfile = profile as KakaoProfile | undefined;
+        user.email = kakaoProfile?.kakao_account?.email;
+      }
+
+      if (!user.email) {
+        return false;
+      }
+
       return true;
     },
   },
@@ -51,6 +62,16 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "database",
+  },
+  events: {
+    async createUser({ user }) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          credits: user.credits ?? 3,
+        },
+      });
+    },
   },
 };
 
