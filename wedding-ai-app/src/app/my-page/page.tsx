@@ -50,6 +50,7 @@ export default async function MyPage() {
   }
 
   const [totalImages, completedImages, totalOrders, totalSpent] = stats;
+  const totalSpentInDollars = (totalSpent._sum.amount ?? 0) / 100;
 
   return (
     <MyPageClient
@@ -58,7 +59,7 @@ export default async function MyPage() {
         totalImages,
         completedImages,
         totalOrders,
-        totalSpent: totalSpent._sum.amount || 0,
+        totalSpent: totalSpentInDollars,
       }}
     />
   );

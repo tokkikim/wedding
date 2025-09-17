@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -9,7 +9,6 @@ import {
   Image as ImageIcon,
   ShoppingBag,
   DollarSign,
-  Calendar,
   Settings,
 } from "lucide-react";
 import { Button } from "@/app/_components/ui/Button";
@@ -46,6 +45,15 @@ export function MyPageClient({ user, stats }: MyPageClientProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "orders" | "settings"
   >("overview");
+
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }),
+    [],
+  );
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("ko-KR", {
@@ -182,7 +190,7 @@ export function MyPageClient({ user, stats }: MyPageClientProps) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${stats.totalSpent.toFixed(2)}
+                  {currencyFormatter.format(stats.totalSpent)}
                 </div>
                 <p className="text-xs text-muted-foreground">모든 시간</p>
               </CardContent>
