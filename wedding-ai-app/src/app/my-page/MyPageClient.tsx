@@ -36,31 +36,63 @@ interface Stats {
   totalSpent: number;
 }
 
+type OrderStatus = "PENDING" | "COMPLETED" | "FAILED";
+
+interface Order {
+  id: string;
+  amount: number;
+  credits: number;
+  status: OrderStatus;
+  createdAt: Date | string;
+}
+
 interface MyPageClientProps {
   user: User;
   stats: Stats;
+  orders: Order[];
 }
 
-export function MyPageClient({ user, stats }: MyPageClientProps) {
+export function MyPageClient({ user, stats, orders }: MyPageClientProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "orders" | "settings"
   >("overview");
 
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }),
-    [],
-  );
+  const formatDate = (date: Date | string) => {
 
-  const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("ko-KR", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
+  };
+
+  const formatDateTime = (date: Date | string) => {
+    return new Date(date).toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount / 100);
+  };
+
+  const statusLabel: Record<OrderStatus, string> = {
+    PENDING: "처리 중",
+    COMPLETED: "완료",
+    FAILED: "실패",
+  };
+
+  const statusStyles: Record<OrderStatus, string> = {
+    PENDING: "bg-amber-100 text-amber-700",
+    COMPLETED: "bg-emerald-100 text-emerald-700",
+    FAILED: "bg-rose-100 text-rose-700",
   };
 
   const tabs = [
@@ -190,7 +222,7 @@ export function MyPageClient({ user, stats }: MyPageClientProps) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {currencyFormatter.format(stats.totalSpent)}
+                  {formatCurrency(stats.totalSpent)}
                 </div>
                 <p className="text-xs text-muted-foreground">모든 시간</p>
               </CardContent>
@@ -242,7 +274,7 @@ export function MyPageClient({ user, stats }: MyPageClientProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {stats.totalOrders === 0 ? (
+              {orders.length === 0 ? (
                 <div className="text-center py-8">
                   <ShoppingBag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">
@@ -253,9 +285,52 @@ export function MyPageClient({ user, stats }: MyPageClientProps) {
                   </Link>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">
-                    주문 내역 기능은 곧 추가될 예정입니다.
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                          일시
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                          결제 금액
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                          크레딧
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                          상태
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {orders.map((order) => (
+                        <tr key={order.id}>
+                          <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              <span>{formatDateTime(order.createdAt)}</span>
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                            {formatCurrency(order.amount)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-gray-900">
+                            {order.credits} 크레딧
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3">
+                            <span
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[order.status]}`}
+                            >
+                              {statusLabel[order.status]}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mt-4 text-xs text-gray-500">
+                    최근 {orders.length}건의 주문 내역입니다.
                   </p>
                 </div>
               )}
