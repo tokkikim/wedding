@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Download, Share2, Heart, Calendar, Filter } from "lucide-react";
+import { Download, Share2, Calendar, Filter } from "lucide-react";
 import { Button } from "@/app/_components/ui/Button";
 import {
   Card,
@@ -13,6 +13,10 @@ import {
   CardTitle,
 } from "@/app/_components/ui/Card";
 import { GeneratedImage } from "@/types";
+import {
+  GallerySkeleton,
+  Skeleton,
+} from "@/app/_components/LoadingSkeleton";
 
 interface GalleryClientProps {
   images: GeneratedImage[];
@@ -21,6 +25,13 @@ interface GalleryClientProps {
 export function GalleryClient({ images }: GalleryClientProps) {
   const [selectedStyle, setSelectedStyle] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (Array.isArray(images)) {
+      setIsLoading(false);
+    }
+  }, [images]);
 
   // 스타일 필터링
   const filteredImages = images.filter((image) => {
@@ -81,6 +92,18 @@ export function GalleryClient({ images }: GalleryClientProps) {
       alert("링크가 클립보드에 복사되었습니다!");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <Skeleton className="h-8 w-40 mb-4" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <GallerySkeleton />
+      </div>
+    );
+  }
 
   if (images.length === 0) {
     return (
