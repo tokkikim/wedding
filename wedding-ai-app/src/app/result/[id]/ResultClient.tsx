@@ -143,11 +143,14 @@ export function ResultClient({
             <CardDescription>업로드하신 원본 사진입니다</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
-              <img
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+              <Image
                 src={generatedImage.originalUrl}
                 alt="원본 사진"
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                unoptimized
               />
             </div>
           </CardContent>
@@ -162,7 +165,7 @@ export function ResultClient({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
               {generatedImage.status === "PROCESSING" ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="text-center">
@@ -177,10 +180,13 @@ export function ResultClient({
                 </div>
               ) : generatedImage.status === "COMPLETED" &&
                 generatedImage.generatedUrl ? (
-                <img
+                <Image
                   src={generatedImage.generatedUrl}
                   alt="AI 웨딩 사진"
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  unoptimized
                 />
               ) : generatedImage.status === "FAILED" ? (
                 <div className="flex h-full items-center justify-center">

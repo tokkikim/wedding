@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Heart, User, CreditCard, LogOut } from "lucide-react";
@@ -62,10 +63,13 @@ export function Navigation() {
                     className="flex items-center space-x-2"
                   >
                     {session.user?.image ? (
-                      <img
+                      <Image
                         src={session.user.image}
                         alt={session.user.name || "사용자"}
-                        className="h-6 w-6 rounded-full"
+                        width={24}
+                        height={24}
+                        className="h-6 w-6 rounded-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <User className="h-4 w-4" />
