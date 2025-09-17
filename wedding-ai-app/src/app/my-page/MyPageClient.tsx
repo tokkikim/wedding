@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+
+import { useEffect, useState } from "react";
+
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -19,6 +22,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/_components/ui/Card";
+import {
+  CardSkeleton,
+  Skeleton,
+  StatsSkeleton,
+} from "@/app/_components/LoadingSkeleton";
 
 interface User {
   id: string;
@@ -56,6 +64,13 @@ export function MyPageClient({ user, stats, orders }: MyPageClientProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "orders" | "settings"
   >("overview");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user && stats) {
+      setIsLoading(false);
+    }
+  }, [user, stats]);
 
   const formatDate = (date: Date | string) => {
 
@@ -100,6 +115,40 @@ export function MyPageClient({ user, stats, orders }: MyPageClientProps) {
     { id: "orders", label: "주문 내역", icon: ShoppingBag },
     { id: "settings", label: "설정", icon: Settings },
   ] as const;
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <Skeleton className="h-20 w-20 rounded-full" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-8 w-40" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-44 rounded-full" />
+        </div>
+
+        <div className="border-b border-gray-200 mb-8">
+          <div className="-mb-px flex space-x-8">
+            {tabs.map((tab) => (
+              <Skeleton key={tab.id} className="h-9 w-24" />
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <StatsSkeleton />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
