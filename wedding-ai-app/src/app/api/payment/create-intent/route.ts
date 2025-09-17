@@ -36,10 +36,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const publishableKey =
+      process.env.STRIPE_PUBLIC_KEY ??
+      process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;
+
+    if (!publishableKey) {
+      return NextResponse.json(
+        { success: false, error: "Stripe 설정이 완료되지 않았습니다." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       clientSecret: result.clientSecret,
       paymentIntentId: result.paymentIntentId,
+      publishableKey,
     });
   } catch (error) {
     console.error("Payment intent creation error:", error);

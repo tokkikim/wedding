@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { Check, CreditCard, Zap, Crown, Star } from "lucide-react";
 import { Button } from "@/app/_components/ui/Button";
 import {
@@ -12,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/_components/ui/Card";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface PricingPlan {
   id: string;
@@ -89,10 +97,48 @@ const pricingPlans: PricingPlan[] = [
   },
 ];
 
+type PaymentMessageType = "success" | "error" | "info";
+
+interface PaymentMessage {
+  type: PaymentMessageType;
+  text: string;
+}
+
 export function PricingClient() {
   const { data: session } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [stripePromise, setStripePromise] =
+    useState<ReturnType<typeof loadStripe> | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState<PaymentMessage | null>(
+    null
+  );
+
+  const resetPaymentState = () => {
+    setSelectedPlan(null);
+    setClientSecret(null);
+    setStripePromise(null);
+  };
+
+  const setStatusMessage = (type: PaymentMessageType, text: string) => {
+    setPaymentMessage({ type, text });
+  };
+
+  const elementsOptions = useMemo<StripeElementsOptions | undefined>(() => {
+    if (!clientSecret) {
+      return undefined;
+    }
+
+    return {
+      clientSecret,
+      appearance: {
+        theme: "stripe",
+        labels: "floating",
+      },
+    };
+  }, [clientSecret]);
 
   const handlePurchase = async (plan: PricingPlan) => {
     if (!session) {
@@ -101,6 +147,7 @@ export function PricingClient() {
     }
 
     setLoading(plan.id);
+    setPaymentMessage(null);
 
     try {
       const response = await fetch("/api/payment/create-intent", {
@@ -115,20 +162,58 @@ export function PricingClient() {
 
       const result = await response.json();
 
-      if (result.success) {
-        // Stripe Checkout으로 리다이렉트
-        // 실제 구현에서는 Stripe Elements를 사용하여 결제 처리
-        alert(
-          `결제 페이지로 이동합니다. (${plan.credits} 크레딧 - $${plan.price})`
-        );
+      if (response.ok && result.success && result.clientSecret) {
+        if (!result.publishableKey) {
+          setStatusMessage(
+            "error",
+            "Stripe 설정에 문제가 있습니다. 잠시 후 다시 시도해주세요."
+          );
+          return;
+        }
+
+        setSelectedPlan(plan);
+        setClientSecret(result.clientSecret);
+        setStripePromise(loadStripe(result.publishableKey));
       } else {
-        alert(result.error || "결제 생성에 실패했습니다.");
+        setStatusMessage(
+          "error",
+          result.error || "결제 생성에 실패했습니다."
+        );
       }
     } catch (error) {
       console.error("Purchase error:", error);
-      alert("결제 처리 중 오류가 발생했습니다.");
+      setStatusMessage("error", "결제 처리 중 오류가 발생했습니다.");
     } finally {
       setLoading(null);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    resetPaymentState();
+    setStatusMessage("info", "결제를 취소했습니다.");
+  };
+
+  const handlePaymentSuccess = (message: string) => {
+    setStatusMessage("success", message);
+    resetPaymentState();
+  };
+
+  const handlePaymentError = (message: string) => {
+    setStatusMessage("error", message);
+  };
+
+  const handlePaymentProcessing = (message: string) => {
+    setStatusMessage("info", message);
+  };
+
+  const getMessageClasses = (type: PaymentMessageType) => {
+    switch (type) {
+      case "success":
+        return "border-green-200 bg-green-50 text-green-700";
+      case "error":
+        return "border-red-200 bg-red-50 text-red-600";
+      default:
+        return "border-blue-200 bg-blue-50 text-blue-700";
     }
   };
 
@@ -142,6 +227,16 @@ export function PricingClient() {
           저렴합니다.
         </p>
       </div>
+
+      {paymentMessage && (
+        <div
+          className={`mb-8 rounded-lg border p-4 text-sm ${getMessageClasses(
+            paymentMessage.type
+          )}`}
+        >
+          {paymentMessage.text}
+        </div>
+      )}
 
       {/* 가격 플랜 */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:grid-cols-4">
@@ -233,6 +328,34 @@ export function PricingClient() {
         })}
       </div>
 
+      {selectedPlan && elementsOptions && stripePromise && (
+        <div className="mt-12">
+          <Card className="mx-auto max-w-2xl">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold">
+                {selectedPlan.name} 결제
+              </CardTitle>
+              <CardDescription>
+                총 결제 금액 ${selectedPlan.price.toFixed(2)} ·
+                {" "}
+                {selectedPlan.credits}개 크레딧
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Elements stripe={stripePromise} options={elementsOptions}>
+                <PaymentCheckoutForm
+                  plan={selectedPlan}
+                  onCancel={handlePaymentCancel}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                  onProcessing={handlePaymentProcessing}
+                />
+              </Elements>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* FAQ 섹션 */}
       <div className="mt-24">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
@@ -317,5 +440,137 @@ export function PricingClient() {
         </Card>
       </div>
     </div>
+  );
+}
+
+interface PaymentCheckoutFormProps {
+  plan: PricingPlan;
+  onCancel: () => void;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+  onProcessing: (message: string) => void;
+}
+
+function PaymentCheckoutForm({
+  plan,
+  onCancel,
+  onSuccess,
+  onError,
+  onProcessing,
+}: PaymentCheckoutFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { update } = useSession();
+  const updateCredits = useAuthStore((state) => state.updateCredits);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setErrorMessage(null);
+  }, [plan.id]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/pricing`,
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        const message =
+          error.message || "결제를 완료할 수 없습니다. 다시 시도해주세요.";
+        setErrorMessage(message);
+        onError(message);
+        return;
+      }
+
+      if (paymentIntent) {
+        if (paymentIntent.status === "succeeded") {
+          try {
+            const refreshedSession = await update();
+            if (refreshedSession?.user?.credits !== undefined) {
+              updateCredits(refreshedSession.user.credits);
+            }
+          } catch (sessionError) {
+            console.error("Session refresh error:", sessionError);
+          }
+
+          onSuccess(
+            `결제가 완료되었습니다! ${plan.credits} 크레딧이 계정에 추가되었습니다.`
+          );
+          return;
+        }
+
+        if (paymentIntent.status === "processing") {
+          onProcessing(
+            "결제를 처리 중입니다. 잠시 후 크레딧이 계정에 반영됩니다."
+          );
+          return;
+        }
+
+        if (paymentIntent.status === "requires_payment_method") {
+          const message =
+            "결제를 완료할 수 없습니다. 다른 결제 수단으로 다시 시도해주세요.";
+          setErrorMessage(message);
+          onError(message);
+          return;
+        }
+
+        if (paymentIntent.status === "requires_action") {
+          onProcessing("추가 인증이 필요합니다. 안내에 따라 결제를 완료해주세요.");
+          return;
+        }
+      }
+
+      const message =
+        "결제 상태를 확인할 수 없습니다. 다시 시도해주세요.";
+      setErrorMessage(message);
+      onError(message);
+    } catch (error) {
+      console.error("Payment confirmation error:", error);
+      const message = "결제 처리 중 오류가 발생했습니다.";
+      setErrorMessage(message);
+      onError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <PaymentElement options={{ layout: "tabs" }} />
+      {errorMessage && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          취소
+        </Button>
+        <Button type="submit" disabled={!stripe || isSubmitting}>
+          {isSubmitting
+            ? "결제 처리 중..."
+            : `${plan.credits} 크레딧 결제하기`}
+        </Button>
+      </div>
+    </form>
   );
 }
