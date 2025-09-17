@@ -310,7 +310,7 @@ export function PricingClient() {
                 <div className="mt-auto">
                   <Button
                     className="w-full"
-                    variant={isPopular ? "primary" : "outline"}
+                    variant={isPopular ? "default" : "outline"}
                     onClick={() => handlePurchase(plan)}
                     disabled={loading === plan.id}
                   >

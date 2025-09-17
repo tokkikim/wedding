@@ -12,7 +12,7 @@ export default async function MyPage() {
   }
 
   // 사용자 정보 및 통계 가져오기
-  const [user, stats] = await Promise.all([
+  const [user, stats, orders] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -43,6 +43,18 @@ export default async function MyPage() {
         _sum: { amount: true },
       }),
     ]),
+    prisma.order.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        amount: true,
+        credits: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
   ]);
 
   if (!user) {
@@ -50,6 +62,7 @@ export default async function MyPage() {
   }
 
   const [totalImages, completedImages, totalOrders, totalSpent] = stats;
+  const totalSpentInDollars = (totalSpent._sum.amount ?? 0) / 100;
 
   return (
     <MyPageClient
@@ -58,8 +71,9 @@ export default async function MyPage() {
         totalImages,
         completedImages,
         totalOrders,
-        totalSpent: totalSpent._sum.amount || 0,
+        totalSpent: totalSpentInDollars,
       }}
+      orders={orders}
     />
   );
 }
