@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -9,7 +9,6 @@ import {
   Image as ImageIcon,
   ShoppingBag,
   DollarSign,
-  Calendar,
   Settings,
 } from "lucide-react";
 import { Button } from "@/app/_components/ui/Button";
@@ -59,6 +58,7 @@ export function MyPageClient({ user, stats, orders }: MyPageClientProps) {
   >("overview");
 
   const formatDate = (date: Date | string) => {
+
     return new Date(date).toLocaleDateString("ko-KR", {
       year: "numeric",
       month: "long",
