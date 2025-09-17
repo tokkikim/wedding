@@ -252,7 +252,7 @@ export function PricingClient() {
           return (
             <Card
               key={plan.id}
-              className={`relative ${
+              className={`relative flex flex-col h-full ${
                 isPopular ? "ring-2 ring-rose-500 shadow-lg" : ""
               }`}
             >
@@ -276,7 +276,7 @@ export function PricingClient() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="text-center">
+              <CardContent className="text-center flex flex-col flex-grow">
                 <div className="mb-6">
                   <div className="flex items-center justify-center gap-2">
                     {plan.originalPrice && (
@@ -298,7 +298,7 @@ export function PricingClient() {
                   </p>
                 </div>
 
-                <ul className="space-y-3 mb-8 text-left">
+                <ul className="space-y-3 mb-8 text-left flex-grow min-h-[200px]">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center gap-3">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -307,21 +307,23 @@ export function PricingClient() {
                   ))}
                 </ul>
 
-                <Button
-                  className="w-full"
-                  variant={isPopular ? "default" : "outline"}
-                  onClick={() => handlePurchase(plan)}
-                  disabled={loading === plan.id}
-                >
-                  {loading === plan.id ? (
-                    "처리 중..."
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      구매하기
-                    </>
-                  )}
-                </Button>
+                <div className="mt-auto">
+                  <Button
+                    className="w-full"
+                    variant={isPopular ? "primary" : "outline"}
+                    onClick={() => handlePurchase(plan)}
+                    disabled={loading === plan.id}
+                  >
+                    {loading === plan.id ? (
+                      "처리 중..."
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        구매하기
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
