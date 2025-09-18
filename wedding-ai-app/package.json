@@ -7,7 +7,19 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "exercise:generate": "tsx scripts/exercise-generate.ts"
+    "exercise:generate": "tsx scripts/exercise-generate.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "lighthouse": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html",
+    "docker:build": "docker build -t wedding-ai-app .",
+    "docker:run": "docker run -p 3000:3000 wedding-ai-app",
+    "docker:compose": "docker-compose up -d",
+    "deploy:vercel": "vercel --prod",
+    "deploy:check": "npm run build && npm run lint && npm run test"
   },
   "dependencies": {
     "react": "19.1.0",

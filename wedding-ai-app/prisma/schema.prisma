@@ -87,6 +87,32 @@ model GeneratedImage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model PerformanceMetric {
+  id        String   @id @default(cuid())
+  url       String
+  userAgent String
+  timestamp DateTime
+  metrics   Json
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([url])
+}
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  error     String
+  context   String
+  stack     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
 enum OrderStatus {
   PENDING
   COMPLETED
