@@ -90,6 +90,7 @@ wedding-ai-app/
 │   ├── store/                # 상태 관리
 │   └── types/                # TypeScript 타입
 ├── ARCHITECTURE.md           # 아키텍처 문서
+├── DATABASE.md               # 데이터베이스 관리 가이드
 └── README.md                 # 이 파일
 ```
 
@@ -242,6 +243,34 @@ npx prisma migrate dev    # 마이그레이션 생성
 ```bash
 npx prisma generate
 ```
+
+3. **데이터 조회 및 확인**
+
+```bash
+# Prisma Studio로 GUI 확인 (가장 추천)
+npm run db:studio         # http://localhost:5555 접속
+
+# 빠른 통계 확인
+npm run db:check:stats    # 사용자 수, 주문 수 등 간단 통계
+
+# 상세 사용자 정보 확인
+npm run db:check:users    # 모든 사용자의 계정, 세션, 주문, 이미지 정보
+
+# 유연한 조회
+npm run db:check          # 전체 통계
+npm run db:check stats    # 전체 통계
+npm run db:check users    # 사용자 목록
+npm run db:check recent   # 최근 활동
+```
+
+**조회 가능한 데이터:**
+- 사용자 정보 (User): 이메일, 이름, 크레딧, 가입일
+- 계정 정보 (Account): OAuth 연결 정보
+- 세션 정보 (Session): 활성 세션, 만료 시간
+- 주문 내역 (Order): 결제 상태, 크레딧 구매 내역
+- 생성 이미지 (GeneratedImage): 이미지 상태, 스타일, 생성일
+
+**상세한 데이터베이스 관리 가이드는 [DATABASE.md](./DATABASE.md)를 참고하세요.**
 
 ## 🧪 테스트
 
