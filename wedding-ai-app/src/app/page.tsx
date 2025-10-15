@@ -1,10 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Heart, Sparkles, Shield, Zap } from "lucide-react";
 import { Button } from "@/app/_components/ui/Button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,

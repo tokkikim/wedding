@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
@@ -12,7 +12,7 @@ type ProviderButton = {
   id: ProviderId;
   label: string;
   description: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
 };
 
 const providerButtons: ProviderButton[] = [
@@ -38,7 +38,7 @@ const providerButtons: ProviderButton[] = [
   },
 ];
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [callbackUrl, setCallbackUrl] = useState("/upload");
@@ -166,5 +166,20 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-rose-50 via-white to-pink-50">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-rose-600 border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }

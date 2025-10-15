@@ -1,4 +1,12 @@
 // 성능 모니터링 및 분석 도구
+
+// Google Analytics gtag 타입 선언
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 export class Analytics {
   private static instance: Analytics;
   
@@ -17,8 +25,8 @@ export class Analytics {
       console.log(`Page ${page} loaded in ${loadTime}ms`);
       
       // Google Analytics 4 이벤트 전송
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'page_load_time', {
+      if (typeof window.gtag !== 'undefined') {
+        window.gtag('event', 'page_load_time', {
           page_name: page,
           load_time: loadTime,
           custom_parameter: 'performance'
@@ -36,8 +44,8 @@ export class Analytics {
   ) {
     console.log(`Image generation for user ${userId}: ${generationTime}ms, success: ${success}`);
     
-    if (typeof window !== 'undefined' && typeof gtag !== 'undefined') {
-      gtag('event', 'ai_image_generation', {
+    if (typeof window !== 'undefined' && typeof window.gtag !== 'undefined') {
+      window.gtag('event', 'ai_image_generation', {
         user_id: userId,
         generation_time: generationTime,
         success: success,
@@ -51,8 +59,8 @@ export class Analytics {
   public trackError(error: Error, context: string, userId?: string) {
     console.error(`Error in ${context}:`, error);
     
-    if (typeof window !== 'undefined' && typeof gtag !== 'undefined') {
-      gtag('event', 'exception', {
+    if (typeof window !== 'undefined' && typeof window.gtag !== 'undefined') {
+      window.gtag('event', 'exception', {
         description: error.message,
         fatal: false,
         context: context,
@@ -63,8 +71,8 @@ export class Analytics {
 
   // 사용자 행동 추적
   public trackUserAction(action: string, category: string, label?: string, value?: number) {
-    if (typeof window !== 'undefined' && typeof gtag !== 'undefined') {
-      gtag('event', action, {
+    if (typeof window !== 'undefined' && typeof window.gtag !== 'undefined') {
+      window.gtag('event', action, {
         event_category: category,
         event_label: label,
         value: value
@@ -79,8 +87,8 @@ export class Analytics {
     currency: string = 'KRW',
     items: Array<{item_id: string, item_name: string, quantity: number, price: number}>
   ) {
-    if (typeof window !== 'undefined' && typeof gtag !== 'undefined') {
-      gtag('event', 'purchase', {
+    if (typeof window !== 'undefined' && typeof window.gtag !== 'undefined') {
+      window.gtag('event', 'purchase', {
         transaction_id: transactionId,
         value: value,
         currency: currency,
@@ -102,9 +110,9 @@ export class Analytics {
         // 요청/응답 시간
         request: navigation.responseEnd - navigation.requestStart,
         // DOM 로딩 시간
-        dom: navigation.domContentLoadedEventEnd - navigation.navigationStart,
+        dom: navigation.domContentLoadedEventEnd - navigation.fetchStart,
         // 전체 로딩 시간
-        load: navigation.loadEventEnd - navigation.navigationStart
+        load: navigation.loadEventEnd - navigation.fetchStart
       };
 
       console.log('Performance metrics:', metrics);
@@ -114,7 +122,7 @@ export class Analytics {
     }
   }
 
-  private async sendPerformanceData(metrics: any) {
+  private async sendPerformanceData(metrics: Record<string, number>) {
     try {
       await fetch('/api/analytics/performance', {
         method: 'POST',
@@ -149,16 +157,17 @@ export function measureWebVitals() {
 
     // First Input Delay (FID)
     new PerformanceObserver((entryList) => {
-      const entries = entryList.getEntries();
+      const entries = entryList.getEntries() as PerformanceEventTiming[];
       entries.forEach((entry) => {
-        analytics.trackUserAction('fid', 'web_vitals', undefined, entry.processingStart - entry.startTime);
+        const delay = entry.processingStart - entry.startTime;
+        analytics.trackUserAction('fid', 'web_vitals', undefined, delay);
       });
     }).observe({ entryTypes: ['first-input'] });
 
     // Cumulative Layout Shift (CLS)
     let clsValue = 0;
     new PerformanceObserver((entryList) => {
-      const entries = entryList.getEntries();
+      const entries = entryList.getEntries() as (PerformanceEntry & { hadRecentInput?: boolean; value: number })[];
       entries.forEach((entry) => {
         if (!entry.hadRecentInput) {
           clsValue += entry.value;

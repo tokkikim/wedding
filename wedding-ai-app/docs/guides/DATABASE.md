@@ -334,7 +334,8 @@ npx tsx scripts/check-orders-by-date.ts
 
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Prisma Studio](https://www.prisma.io/studio)
-- [프로젝트 스키마](./prisma/schema.prisma)
+- [프로젝트 스키마](../../prisma/schema.prisma)
+- [문서 인덱스](../INDEX.md)
 
 ---
 

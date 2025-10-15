@@ -109,16 +109,19 @@ export async function deleteFromCloudinary(
  */
 export function getCloudinaryUrl(
   publicId: string,
-  transformations: TransformationOptions = {}
+  transformations?: TransformationOptions
 ): string {
   const defaultTransformations: TransformationOptions = {
     quality: "auto",
     fetch_format: "auto",
-    ...transformations,
   };
 
+  const finalTransformations = transformations 
+    ? Object.assign({}, defaultTransformations, transformations)
+    : defaultTransformations;
+
   return cloudinary.url(publicId, {
-    transformation: defaultTransformations,
+    transformation: finalTransformations,
   });
 }
 

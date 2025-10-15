@@ -74,24 +74,71 @@ npm run dev
 
 애플리케이션이 [http://localhost:3000](http://localhost:3000)에서 실행됩니다.
 
+## 📚 문서 찾기
+
+모든 개발 문서는 `docs/` 폴더에 체계적으로 정리되어 있습니다.
+
+### 🎯 빠른 시작
+
+- **[📌 문서 인덱스](./docs/INDEX.md)** ← **여기서 시작하세요!**
+  - 모든 문서의 위치와 용도를 한눈에 확인
+  - 상황별 추천 문서 제공
+
+### 📖 주요 문서
+
+| 문서 | 설명 | 대상 |
+|------|------|------|
+| [📋 프로젝트 계획서](./docs/PROJECT_PLAN.md) | 전체 프로젝트 개요 및 계획 | 모든 팀원 |
+| [🏗️ 시스템 아키텍처](./docs/architecture/ARCHITECTURE.md) | 시스템 구조 및 설계 | 개발자 |
+| [💻 개발 가이드](./docs/guides/DEVELOPMENT.md) | 개발 환경 설정 및 코딩 규칙 | 개발자 |
+| [🗄️ 데이터베이스 가이드](./docs/guides/DATABASE.md) | DB 조회 및 관리 방법 | 개발자 |
+| [🧪 테스트 가이드](./docs/guides/TESTING.md) | 테스트 작성 및 실행 | 개발자, QA |
+| [🚀 배포 가이드](./docs/guides/DEPLOYMENT.md) | 프로덕션 배포 방법 | DevOps |
+
+### 📊 프로젝트 진행 상황
+
+- [Phase 2 완료 보고서](./docs/reports/PHASE2_COMPLETION.md) - 핵심 기능 개발 완료
+- [Phase 4 완료 보고서](./docs/reports/PHASE4_COMPLETION.md) - 배포 및 테스트 완료
+
+### 📝 문서 관리
+
+- [문서 정리 보고서](./docs/DOCUMENTATION_ORGANIZATION.md) - 문서 체계화 작업 내역
+- [문서 기여 가이드](./docs/CONTRIBUTING.md) - 문서 작성 및 수정 가이드
+
+> 💡 **Tip:** 처음 프로젝트를 시작하시나요? [문서 인덱스](./docs/INDEX.md)를 먼저 확인하세요!
+
+---
+
 ## 📁 프로젝트 구조
 
 ```
 wedding-ai-app/
-├── prisma/                    # 데이터베이스 스키마
-├── public/                    # 정적 파일
+├── prisma/                           # 데이터베이스 스키마
+├── public/                           # 정적 파일
 ├── src/
-│   ├── app/                   # App Router 페이지
-│   │   ├── _components/       # 공용 컴포넌트
-│   │   ├── api/              # API 라우트
-│   │   ├── upload/           # 업로드 페이지
-│   │   └── result/           # 결과 페이지
-│   ├── lib/                  # 유틸리티 라이브러리
-│   ├── store/                # 상태 관리
-│   └── types/                # TypeScript 타입
-├── ARCHITECTURE.md           # 아키텍처 문서
-├── DATABASE.md               # 데이터베이스 관리 가이드
-└── README.md                 # 이 파일
+│   ├── app/                          # App Router 페이지
+│   │   ├── _components/              # 공용 컴포넌트
+│   │   ├── api/                      # API 라우트
+│   │   ├── upload/                   # 업로드 페이지
+│   │   └── result/                   # 결과 페이지
+│   ├── lib/                          # 유틸리티 라이브러리
+│   ├── store/                        # 상태 관리
+│   └── types/                        # TypeScript 타입
+├── docs/                             # 📚 프로젝트 문서
+│   ├── INDEX.md                      # 📌 문서 인덱스 (여기서 시작)
+│   ├── PROJECT_PLAN.md               # 📋 프로젝트 전체 계획서
+│   ├── guides/                       # 📖 개발 가이드
+│   │   ├── DEVELOPMENT.md           # 개발 환경 및 개발 가이드
+│   │   ├── DATABASE.md              # 데이터베이스 관리 가이드
+│   │   ├── TESTING.md               # 테스트 가이드
+│   │   └── DEPLOYMENT.md            # 배포 가이드
+│   ├── architecture/                 # 🏗️ 아키텍처 문서
+│   │   └── ARCHITECTURE.md          # 시스템 아키텍처 설계
+│   └── reports/                      # 📊 완료 보고서
+│       ├── PHASE2_COMPLETION.md     # Phase 2 완료 보고서
+│       └── PHASE4_COMPLETION.md     # Phase 4 완료 보고서
+├── scripts/                          # 유틸리티 스크립트
+└── README.md                         # 이 파일
 ```
 
 ## 🛠 기술 스택
@@ -270,7 +317,7 @@ npm run db:check recent   # 최근 활동
 - 주문 내역 (Order): 결제 상태, 크레딧 구매 내역
 - 생성 이미지 (GeneratedImage): 이미지 상태, 스타일, 생성일
 
-**상세한 데이터베이스 관리 가이드는 [DATABASE.md](./DATABASE.md)를 참고하세요.**
+**상세한 데이터베이스 관리 가이드는 [DATABASE.md](./docs/guides/DATABASE.md)를 참고하세요.**
 
 ## 🧪 테스트
 
