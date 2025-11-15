@@ -116,10 +116,9 @@ export function getCloudinaryUrl(
     fetch_format: "auto",
   };
 
-  const finalTransformations = {
-    ...defaultTransformations,
-    ...transformations,
-  };
+  const finalTransformations = transformations
+    ? Object.assign({}, defaultTransformations, transformations)
+    : defaultTransformations;
 
   return cloudinary.url(publicId, {
     transformation: finalTransformations,
