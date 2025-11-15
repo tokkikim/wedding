@@ -65,6 +65,8 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'your-domain.com'],
     },
+    // Instrumentation 활성화 (환경 변수 검증용)
+    instrumentationHook: true,
   },
 };
 
