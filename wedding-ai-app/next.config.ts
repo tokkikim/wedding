@@ -65,9 +65,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'your-domain.com'],
     },
-    // Instrumentation 활성화 (환경 변수 검증용)
-    // @ts-expect-error - instrumentationHook is supported but not yet in type definitions
-    instrumentationHook: true,
+    // Note: instrumentationHook은 Next.js 15.5.3에서 기본 활성화됨
   },
 };
 
