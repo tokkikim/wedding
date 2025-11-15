@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ResultClient } from "./ResultClient";
 
@@ -9,7 +8,7 @@ interface ResultPageProps {
 }
 
 export default async function ResultPage({ params }: ResultPageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     notFound();

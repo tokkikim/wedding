@@ -1,6 +1,6 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import KakaoProvider from "next-auth/providers/kakao";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import Kakao from "next-auth/providers/kakao";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 
@@ -10,14 +10,14 @@ type KakaoProfile = {
   };
 };
 
-export const authOptions: NextAuthOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
+    Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    KakaoProvider({
+    Kakao({
       clientId: process.env.KAKAO_CLIENT_ID!,
       clientSecret: process.env.KAKAO_CLIENT_SECRET!,
       authorization: {
@@ -79,6 +79,4 @@ export const authOptions: NextAuthOptions = {
       }
     },
   },
-};
-
-export default NextAuth(authOptions);
+});

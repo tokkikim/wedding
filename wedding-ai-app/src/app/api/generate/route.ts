@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import type { NextAuthOptions } from "next-auth";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   generateWeddingImage,
@@ -8,16 +7,6 @@ import {
   validateImageQuality,
 } from "@/lib/ai";
 import { uploadToCloudinary } from "@/lib/cloudinary";
-
-let cachedAuthOptions: NextAuthOptions | null = null;
-
-async function getAuthOptions(): Promise<NextAuthOptions> {
-  if (!cachedAuthOptions) {
-    cachedAuthOptions = (await import("@/lib/auth")).authOptions;
-  }
-
-  return cachedAuthOptions;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +17,7 @@ export async function POST(request: NextRequest) {
         ? ({ user: { id: process.env.TEST_SESSION_USER_ID } } as {
             user: { id: string };
           })
-        : await getServerSession(await getAuthOptions());
+        : await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json(
