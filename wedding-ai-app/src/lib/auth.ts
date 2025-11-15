@@ -65,18 +65,12 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async createUser({ user }) {
-      try {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            credits: user.credits ?? 3,
-          },
-        });
-      } catch (error) {
-        console.error("Failed to set initial user credits:", error);
-        // 크레딧 설정 실패는 치명적이지 않으므로 사용자 생성은 계속 진행
-        // 사용자는 나중에 크레딧을 수동으로 설정하거나 첫 로그인 시 설정 가능
-      }
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          credits: user.credits ?? 3,
+        },
+      });
     },
   },
 };
