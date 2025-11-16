@@ -2,7 +2,38 @@
 
 AI 기술을 활용하여 고객이 업로드한 사진을 웨딩촬영 스타일로 변환하는 웹 애플리케이션입니다.
 
-## 🚀 시작하기
+## 🚀 빠른 시작
+
+### 📖 **처음 시작하시나요?**
+
+**👉 [완벽한 시작 가이드 보기 (GETTING_STARTED.md)](./GETTING_STARTED.md)**
+
+상세한 설치 가이드, 환경 설정, 트러블슈팅을 포함한 완벽한 문서입니다.
+
+### ⚡ 빠른 설치 (경험자용)
+
+```bash
+# 1. 저장소 클론
+git clone https://github.com/tokkikim/wedding.git
+cd wedding/wedding-ai-app
+
+# 2. 의존성 설치
+npm install
+
+# 3. 환경 변수 설정
+cp .env.example .env  # .env 파일 수정 필요
+
+# 4. 데이터베이스 설정
+# PostgreSQL 실행 및 wedding_ai_db 생성
+npm run db:generate
+npm run db:push
+
+# 5. 개발 서버 실행
+npm run dev
+```
+
+애플리케이션: http://localhost:3000
+Prisma Studio: http://localhost:5555 (`npm run db:studio`)
 
 ### 필수 요구사항
 
@@ -10,69 +41,16 @@ AI 기술을 활용하여 고객이 업로드한 사진을 웨딩촬영 스타�
 - PostgreSQL 14 이상
 - npm 또는 yarn
 
-### 설치 및 실행
-
-1. **저장소 클론**
+### 주요 명령어
 
 ```bash
-git clone <repository-url>
-cd wedding-ai-app
+npm run dev          # 개발 서버 실행
+npm run build        # 프로덕션 빌드
+npm test             # 단위 테스트
+npm run test:e2e     # E2E 테스트
+npm run db:studio    # 데이터베이스 GUI
+npm run lint         # 코드 검사
 ```
-
-2. **의존성 설치**
-
-```bash
-npm install
-```
-
-3. **환경 변수 설정**
-   `.env.local` 파일을 생성하고 다음 변수들을 설정하세요:
-
-```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/wedding_ai_db?schema=public"
-
-# NextAuth.js
-NEXTAUTH_SECRET="your-secret-key-here"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Google OAuth
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# Kakao OAuth
-KAKAO_CLIENT_ID="your-kakao-client-id"
-KAKAO_CLIENT_SECRET="your-kakao-client-secret"
-
-# AI Services
-GEMINI_API_KEY="your-gemini-api-key"
-REPLICATE_API_TOKEN="your-replicate-api-token"
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME="your-cloudinary-cloud-name"
-CLOUDINARY_API_KEY="your-cloudinary-api-key"
-CLOUDINARY_API_SECRET="your-cloudinary-api-secret"
-
-# Stripe
-STRIPE_PUBLIC_KEY="your-stripe-public-key"
-STRIPE_SECRET_KEY="your-stripe-secret-key"
-STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
-```
-
-4. **데이터베이스 설정**
-
-```bash
-npx prisma generate
-npx prisma db push
-```
-
-5. **개발 서버 실행**
-
-```bash
-npm run dev
-```
-
-애플리케이션이 [http://localhost:3000](http://localhost:3000)에서 실행됩니다.
 
 ## 📚 문서 찾기
 
