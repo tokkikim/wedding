@@ -113,6 +113,23 @@ model ErrorLog {
   @@index([userId])
 }
 
+model JobQueue {
+  id          String    @id @default(cuid())
+  type        String    // 작업 타입 (e.g., "image-generation")
+  payload     Json      // 작업 데이터
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([type])
+}
+
 enum OrderStatus {
   PENDING
   COMPLETED
@@ -123,4 +140,12 @@ enum ImageStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
 }
